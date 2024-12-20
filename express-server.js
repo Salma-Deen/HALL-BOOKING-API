@@ -1,6 +1,6 @@
 import express from "express";
 import roomsRouter from "./routes/rooms.js";
-import custRouter from "./routes/customers.js";
+import custRouter from "./routes/customer.js";
 import bookRouter from "./routes/bookings.js";
 const server = express();
 server.use(express.json());
