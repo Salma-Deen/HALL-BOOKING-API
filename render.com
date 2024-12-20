@@ -7,7 +7,7 @@ https://hall-booking-api-cay4.onrender.com
 1)Creating a room:POST-https://hall-booking-api-cay4.onrender.com/rooms
 2)Getting ALL room DETAILS:GET-https://hall-booking-api-cay4.onrender.com/rooms
 3)Getting Details of a Single room using ID:GET-https://hall-booking-api-cay4.onrender.com/rooms/U-ID(4d87c65f-6a52-4158-b300-aee8389dc517)
-
+4)adding booked room details:PATCH-http://localhost:4500/rooms/91ae5907-8b47-4533-9d99-a3a936fb662e(roomID)/add-room
 
 ****CUSTOMERS****
 1)Creating a Customer:POST-https://hall-booking-api-cay4.onrender.com/customer
