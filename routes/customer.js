@@ -1,82 +1,145 @@
 import express from "express";
 import { v4 } from "uuid";
 
-// Dummy in-memory data for rooms and bookings (for demonstration purposes)
+const customerRouter = express.Router();
+
+// In-memory storage for customers, rooms, and bookings
+const customers = [];
 const rooms = [];
-const booking = [];
-const customer = [];
+const bookings = [];
 
-const custRouter = express.Router();
+// Fetch all customers with their booked data
+customerRouter.get("/all", (req, res) => {
+  if (bookings.length === 0) {
+    return res.status(404).json({ msg: "No bookings found" });
+  }
 
-// Helper function to check if the room is booked at the given date and time
-const isRoomBooked = (roomName, date, startTime, endTime) => {
-    return booking.some(book => {
-        return book.roomName === roomName &&
-            book.date === date &&
-            (
-                (startTime >= book.startTime && startTime < book.endTime) ||  // Overlaps at start time
-                (endTime > book.startTime && endTime <= book.endTime) ||    // Overlaps at end time
-                (startTime <= book.startTime && endTime >= book.endTime)    // Fully overlaps
-            );
+  const customerDetails = bookings.map((booking) => {
+    const room = rooms.find((room) => room.id === booking.roomId);
+    return {
+      customerName: booking.customerName,
+      roomName: room ? room.name : "Room Not Found",
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+    };
+  });
+
+  res.status(200).json({
+    msg: "Successfully fetched all customer bookings",
+    customerDetails,
+  });
+});
+
+// List how many times a customer has booked the room
+customerRouter.get("/bookings-summary", (req, res) => {
+  if (bookings.length === 0) {
+    return res.status(404).json({ msg: "No bookings found" });
+  }
+
+  const summary = customers.map((customer) => {
+    const customerBookings = bookings.filter(
+      (booking) => booking.customerId === customer.id
+    );
+
+    const bookingDetails = customerBookings.map((booking) => {
+      const room = rooms.find((room) => room.id === booking.roomId);
+      return {
+        customerName: customer.name,
+        roomName: room ? room.name : "Room Not Found",
+        date: booking.date,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        bookingId: booking.id,
+        bookingDate: booking.bookingDate,
+        bookingStatus: booking.status || "Confirmed",
+      };
     });
-};
 
-// CREATE A NEW CUSTOMER WITH Name, Room Name, Date, Start Time, and End Time
-custRouter.post("/", (req, res) => {
-    const { name, roomName, date, startTime, endTime } = req.body;
-
-    // Validate the required fields
-    if (!name || !roomName || !date || !startTime || !endTime) {
-        return res.status(400).json({ msg: "All fields (name, roomName, date, startTime, endTime) are required." });
-    }
-
-    // Check if the room is already booked at the requested time
-    if (isRoomBooked(roomName, date, startTime, endTime)) {
-        return res.status(400).json({ msg: "Room is already booked for the selected date and time." });
-    }
-
-    const newCust = {
-        id: v4(),
-        name,
-        roomName,
-        date,
-        startTime,
-        endTime,
+    return {
+      customerName: customer.name,
+      totalBookings: customerBookings.length,
+      bookingDetails,
     };
+  });
 
-    // Add the new customer to the customer list
-    customer.push(newCust);
-
-    // Also, you can create a booking for the room at the same time
-    const newBooking = {
-        roomName,
-        date,
-        startTime,
-        endTime,
-        customerId: newCust.id
-    };
-
-    // Add the booking to the in-memory booking list
-    booking.push(newBooking);
-
-    res.status(201).json({ msg: "A new customer is created successfully", customer: newCust });
+  res.status(200).json({
+    msg: "Successfully fetched customer booking summaries",
+    summary,
+  });
 });
 
-// GET ALL CUSTOMERS
-custRouter.get("/", (req, res) => {
-    res.json(customer);
+// Add a new customer
+customerRouter.post("/add-customer", (req, res) => {
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ msg: "Customer name is required" });
+  }
+
+  const newCustomer = { id: v4(), name };
+  customers.push(newCustomer);
+
+  res.status(201).json({
+    msg: "Customer added successfully",
+    customer: newCustomer,
+  });
 });
 
-// GET A CUSTOMER BY ID
-custRouter.get("/:id", (req, res) => {
-    const custId = req.params.id;
-    const cust = customer.find((cus) => cus.id === custId);
+// Add a new room
+customerRouter.post("/add-room", (req, res) => {
+  const { name, amenities, price, seats } = req.body;
 
-    if (cust) {
-        res.json(cust);
-    } else {
-        res.status(404).json({ msg: "Customer not found" });
-    }
+  if (!name || !amenities || !price || !seats) {
+    return res.status(400).json({ msg: "All room details are required" });
+  }
+
+  const newRoom = { id: v4(), name, amenities, price, seats };
+  rooms.push(newRoom);
+
+  res.status(201).json({
+    msg: "Room added successfully",
+    room: newRoom,
+  });
 });
 
-export default custRouter;
+// Add a new booking
+customerRouter.post("/add-booking", (req, res) => {
+  const { customerId, roomId, date, startTime, endTime, status } = req.body;
+
+  if (!customerId || !roomId || !date || !startTime || !endTime) {
+    return res.status(400).json({ msg: "All booking details are required" });
+  }
+
+  const customer = customers.find((cust) => cust.id === customerId);
+  const room = rooms.find((room) => room.id === roomId);
+
+  if (!customer) {
+    return res.status(404).json({ msg: "Customer not found" });
+  }
+
+  if (!room) {
+    return res.status(404).json({ msg: "Room not found" });
+  }
+
+  const newBooking = {
+    id: v4(),
+    customerId,
+    roomId,
+    customerName: customer.name,
+    date,
+    startTime,
+    endTime,
+    bookingDate: new Date().toISOString(),
+    status: status || "Confirmed",
+  };
+
+  bookings.push(newBooking);
+
+  res.status(201).json({
+    msg: "Booking added successfully",
+    booking: newBooking,
+  });
+});
+
+export default customerRouter;
