@@ -1,3 +1,3 @@
 export const rooms=[];
-export const customer=[];
-export const booking=[];
+export const customers=[];
+export const bookings=[];
